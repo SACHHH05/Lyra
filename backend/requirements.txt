@@ -1,0 +1,13 @@
+fastapi==0.115.0
+uvicorn==0.30.6
+
+# Speech-to-text
+faster-whisper==1.0.3
+
+# Audio recording
+sounddevice==0.4.6
+scipy==1.13.1
+numpy==2.0.1
+
+# HTTP requests for LLM
+requests==2.32.3
