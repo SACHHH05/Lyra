@@ -1,19 +1,12 @@
 import sounddevice as sd
-from scipy.io.wavfile import write
-import numpy as np
+import wave
 
 SAMPLE_RATE = 16000
 CHANNELS = 1
 
 def record_audio(duration=5, filename="input.wav"):
+    print("Lyra is listening...")
 
-    """
-    Records audio from microphone and saves it as WAV file
-    """
-
-    print("🎤 Lyra is listening...")
-
-    # Record audio
     audio = sd.rec(
         int(duration * SAMPLE_RATE),
         samplerate=SAMPLE_RATE,
@@ -21,10 +14,13 @@ def record_audio(duration=5, filename="input.wav"):
         dtype='int16'
     )
 
-    sd.wait()  
+    sd.wait()
 
-    write(filename, SAMPLE_RATE, audio)
+    with wave.open(filename, 'wb') as wf:
+        wf.setnchannels(CHANNELS)
+        wf.setsampwidth(2)
+        wf.setframerate(SAMPLE_RATE)
+        wf.writeframes(audio.tobytes())
 
-    print(f"Audio saved: {filename}")
-
+    print(f"Saved: {filename}")
     return filename
