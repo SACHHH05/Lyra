@@ -24,3 +24,14 @@ def record_audio(duration=5, filename="input.wav"):
 
     print(f"Saved: {filename}")
     return filename
+
+def save_audio(audio, filename="input.wav", sample_rate=16000):
+    audio = (audio * 32767).astype("int16")
+
+    with wave.open(filename, "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(sample_rate)
+        wf.writeframes(audio.tobytes())
+
+    return filename

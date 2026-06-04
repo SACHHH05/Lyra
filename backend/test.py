@@ -1,4 +1,7 @@
-from llm import ask_llm
+from vad import record_with_vad
+from audio import save_audio
 
-response = ask_llm("Explain recursion in simple terms")
-print(response)
+audio = record_with_vad()
+file = save_audio(audio)
+
+print("Saved:", file)
