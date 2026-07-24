@@ -1,58 +1,43 @@
 import torch
-import sounddevice as sd
 import numpy as np
+from config import SAMPLE_RATE, VAD_THRESHOLD
 
-SAMPLE_RATE = 16000
+class VADProcessor:
+    def __init__(self):
+        self.model, _ = torch.hub.load(
+            'snakers4/silero-vad',
+            'silero_vad',
+            trust_repo=True
+        )
+        self.speech_buffer = []
+        self.is_speaking = False
 
-model, utils = torch.hub.load(
-    repo_or_dir='snakers4/silero-vad',
-    model='silero_vad',
-    force_reload=False
-)
+    def _predict(self, audio_chunk):
+        if len(audio_chunk) < 512:
+            return 0.0
 
-(get_speech_timestamps, _, read_audio, _, _) = utils
+        # Silero VAD expects a 2D tensor batch shape: [batch_size, time]
+        audio_tensor = torch.tensor(audio_chunk, dtype=torch.float32).unsqueeze(0)
 
+        with torch.no_grad():
+            prob = self.model(audio_tensor, SAMPLE_RATE).item()
 
-def record_with_vad(max_duration=10):
-    """
-    Simple stable VAD-based recording
-    """
+        return prob
 
-    print("Lyra is listening (VAD mode)...")
+    def is_speech(self, chunk):
+        prob = self._predict(chunk)
+        return prob > VAD_THRESHOLD
 
-    audio_buffer = []
+    def add_speech(self, chunk):
+        self.speech_buffer.extend(chunk)
+        self.is_speaking = True
 
-    def callback(indata, frames, time, status):
-        audio_buffer.append(indata.copy())
+    def reset(self):
+        self.speech_buffer = []
+        self.is_speaking = False
 
-    with sd.InputStream(
-        samplerate=SAMPLE_RATE,
-        channels=1,
-        dtype='float32',
-        callback=callback
-    ):
-        sd.sleep(int(max_duration * 1000))
+    def has_speech(self):
+        return len(self.speech_buffer) > SAMPLE_RATE * 0.3  
 
-    audio = np.concatenate(audio_buffer, axis=0)
-
-    wav = torch.tensor(audio.squeeze())
-
-    speech_timestamps = get_speech_timestamps(
-        wav,
-        model,
-        sampling_rate=SAMPLE_RATE
-    )
-
-    if not speech_timestamps:
-        print("No speech detected")
-        return audio
-
-    speech_audio = []
-    for ts in speech_timestamps:
-        speech_audio.append(audio[ts['start']:ts['end']])
-
-    final_audio = np.concatenate(speech_audio, axis=0)
-
-    print("Speech extracted successfully")
-
-    return final_audio
+    def get_audio(self):
+        return np.array(self.speech_buffer, dtype=np.float32)

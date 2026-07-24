@@ -3,3 +3,4 @@ uvicorn
 faster-whisper
 sounddevice
 requests
+pykokoro
