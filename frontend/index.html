@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Lyra AI</title>
+</head>
+<body>
+    <h1>Lyra Interface</h1>
+    <button id="startBtn">Connect & Speak</button>
+    <p id="transcript"></p>
+
+    <script>
+        const ws = new WebSocket("ws://localhost:8000/ws/audio");
+        ws.binaryType = "arraybuffer"; 
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        ws.onmessage = async (event) => {
+            if (event.data instanceof ArrayBuffer) {
+                const audioBuffer = await audioCtx.decodeAudioData(event.data);
+                const source = audioCtx.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(audioCtx.destination);
+                source.start();
+            } else {
+                const data = JSON.parse(event.data);
+                document.getElementById("transcript").innerText = `Lyra: ${data.response}`;
+            }
+        };
+
+        document.getElementById("startBtn").addEventListener("click", async () => {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            console.log("Microphone connected, streaming to Lyra...");
+            
+        });
+    </script>
+</body>
+</html>
